@@ -5,10 +5,10 @@ var center = [Math.floor(width/2), Math.floor(height/2)];
 
 var masses;
 var bodies;
-var radius = 5, mass = 500;
+var radius = 5, mass = 10;
 var G = 1;
-var bodiesCount = 3;
-var t = 0, dt = 0.1;
+var bodiesCount = 30;
+var t = 0, dt = 0.05;
 
 function init() {
 	canvas = document.getElementById('canvas');
@@ -26,24 +26,26 @@ function createBodies(bodiesCount) {
 	bodies = new Array(bodiesCount);
 	masses = new Array(bodiesCount);
 
-	var R = size/4, alpha;
+	var R = size/10, alpha;
 	for (var i = bodiesCount-1; i>=0; --i) {
-		masses[i] = mass;
+		masses[i] = (Math.random()-0.5)*10;
 		bodies[i] = new Array(2);
 		alpha = 2*Math.PI*i/bodiesCount;
-		bodies[i][0] = [Math.sin(0.123),Math.sin(0.123)];//[center[0] + Math.round(R*Math.sin(alpha)), center[1] - Math.round(R*Math.cos(alpha))];
+		bodies[i][0] = [center[0] + (Math.random()-0.5)*100, center[1] + (Math.random()-0.5)*100];
+		// bodies[i][0] = [center[0] + Math.round(R*Math.sin(alpha)), center[1] - Math.round(R*Math.cos(alpha))];
 		bodies[i][1] = [0, 0];
 	}
 
-	console.log(bodies);
+	console.debug(bodies);
 }
 
 function run() {
+	context.fillStyle="white";
+	context.fillRect(0,0,width,height);
 	drawBodies(bodies);
 	bodies = nextPosition(bodies, masses, dt);
-	// console.log(bodies);
 	t += dt;
-	// requestAnimationFrame(run);
+	requestAnimationFrame(run);
 }
 
 function nextPosition (bodies, masses, dt) {
@@ -59,7 +61,7 @@ function nextPosition (bodies, masses, dt) {
 		}
 	}
 
-	var xn = bodies;
+	var xn = bodies.concat();
 	for (var i = bodiesCount-1; i>=0; --i) {
 		for (var j = 1; j>=0; --j) {
 			for (var k = 1; k>=0; --k) {
@@ -76,7 +78,7 @@ function nextPosition (bodies, masses, dt) {
 		}
 	}
 
-	xn = bodies;
+	xn = bodies.concat();
 	for (var i = bodiesCount-1; i>=0; --i) {
 		for (var j = 1; j>=0; --j) {
 			for (var k = 1; k>=0; --k) {
@@ -93,7 +95,7 @@ function nextPosition (bodies, masses, dt) {
 		}
 	}
 
-	xn = bodies;
+	xn = bodies.concat();
 	for (var i = bodiesCount-1; i>=0; --i) {
 		for (var j = 1; j>=0; --j) {
 			for (var k = 1; k>=0; --k) {
@@ -132,12 +134,13 @@ function F(x, masses) {
 		for (var k = 1; k>=0; --k) {
 			result[i][0][k] = x[i][1][k];
 		}
+		result[i][1][0] = 0;
+		result[i][1][1] = 0;
 		for (var j = bodiesCount-1; j>=0; --j) 
 			if (i != j) {
-				result[i][1][k] = 0;
-				var d = distance(x[i][0], x[j][0]);
-				for (var k = 2; k>=0; --k) {
-					result[i][1][k] += masses[j]*(x[j][0][k] - x[i][0][k])/cube(d); 
+				var cd = cube(distance(x[i][0], x[j][0]));
+				for (var k = 1; k>=0; --k) {
+					result[i][1][k] += G*masses[j]*(x[j][0][k] - x[i][0][k])/cd; 
 				}
 			}
 		}
