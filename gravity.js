@@ -6,8 +6,8 @@ var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 var bodies;
 var mass = 5;
 var G = 100;
-var bodiesCount = 2;
-var t = 0, dt = 0.05;
+var bodiesCount = 100;
+var t = 0, dt = 0.1;
 var c = 0;
 
 function init() {
@@ -34,8 +34,8 @@ function run() {
 	context.fillStyle="white";
 	context.fillRect(0,0,width,height);
 	draw(bodies, context);
-	console.log(bodies[0].pos, bodies[0].v)
 	bodies = nextPosition(bodies, dt);
+	checkHit(bodies);
 	t += dt;
 	requestAnimationFrame(run);
 }
@@ -46,6 +46,18 @@ function nextPosition (bodies, dt) {
 	var k3 = multiply(F(add(bodies, multiply(k2, 0.5)), G), dt);
 	var k4 = multiply(F(add(bodies, k3), G), dt);
 	return add(bodies, multiply(add(k1, add(multiply(k2, 2.0), add(multiply(k3, 2.0), k4))), 1.0/6.0));
+}
+
+function checkHit (bodies) {
+	for (var i = 0; i<bodies.length; ++i) {
+		for (var j = i+1; j<bodies.length; ++j) 
+			if (bodies[i].pos.subtract(bodies[j].pos).norm() < (bodies[i].radius + bodies[j].radius)) {
+				bodies[i].setMass(bodies[i].m + bodies[j].m);
+				bodies[i].v.add(bodies[j].v);
+				bodies.splice(j, 1);
+				--j;
+		}
+	}
 }
 
 function F(bodies, G) {
@@ -86,7 +98,7 @@ function Body (id, pos, v, m) {
 	this.pos = pos;
 	this.v = v;
 	this.m = m;
-	this.radius = m;
+	this.radius = Math.pow(m, 1/3.0);
 
 	this.draw = function (context) {
 		context.fillStyle="black";
@@ -113,6 +125,11 @@ function Body (id, pos, v, m) {
 
 	this.add = function(sp, sv) {
 		return new Body(id, this.pos.add(sp), this.v.add(sv), this.m);
+	}
+
+	this.setMass = function (mass) {
+		this.m = mass;
+		this.radius = Math.pow(m, 1/3.0);
 	}	
 }
 
