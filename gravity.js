@@ -6,7 +6,7 @@ var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 var bodies;
 var mass = 5;
 var G = 100;
-var bodiesCount = 100;
+var bodiesCount = 50;
 var t = 0, dt = 0.1;
 var c = 0;
 
@@ -23,10 +23,14 @@ function init() {
 function createBodies(bodiesCount) {
 	bodies = new Array(bodiesCount);
 
-	var R = size/4, alpha;
+	var R = size/8, alpha;
 	for (var i = bodiesCount-1; i>=0; --i) {
-		bodies[i] = new Body(i, center.add(new Vector(Math.floor(R*Math.random()), Math.floor(R*Math.random()))),
+		bodies[i] = new Body(i, randomCenter(center, R),
 			new Vector(0, 0), mass);
+	}
+
+	function randomCenter (center, s) {
+		return center.add(new Vector(Math.floor(2*s*(Math.random()-0.5)), Math.floor(2*s*(Math.random()-0.5))));
 	}
 }
 
@@ -51,9 +55,8 @@ function nextPosition (bodies, dt) {
 function checkHit (bodies) {
 	for (var i = 0; i<bodies.length; ++i) {
 		for (var j = i+1; j<bodies.length; ++j) 
-			if (bodies[i].pos.subtract(bodies[j].pos).norm() < (bodies[i].radius + bodies[j].radius)) {
-				bodies[i].setMass(bodies[i].m + bodies[j].m);
-				bodies[i].v.add(bodies[j].v);
+			if (bodies[i].checkHit(bodies[j])) {
+				bodies[i].merge(bodies[j]);
 				bodies.splice(j, 1);
 				--j;
 		}
@@ -127,9 +130,14 @@ function Body (id, pos, v, m) {
 		return new Body(id, this.pos.add(sp), this.v.add(sv), this.m);
 	}
 
-	this.setMass = function (mass) {
-		this.m = mass;
-		this.radius = Math.pow(m, 1/3.0);
+	this.checkHit = function (that) {
+		return this.pos.subtract(that.pos).norm() < (this.radius + that.radius);
+	}
+
+	this.merge = function (that) {
+		this.m += that.m;
+		this.radius = Math.pow(this.m, 1.0/3.0);
+		this.v = this.v.multiply(this.m).add(that.v.multiply(that.m)).multiply(1.0/(this.m + that.m));
 	}	
 }
 
