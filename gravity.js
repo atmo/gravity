@@ -6,7 +6,7 @@ var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 var bodies;
 var mass = 5;
 var G = 100;
-var bodiesCount = 50;
+var bodiesCount = 20;
 var t = 0, dt = 0.1;
 var c = 0;
 
@@ -40,6 +40,7 @@ function run() {
 	draw(bodies, context);
 	bodies = nextPosition(bodies, dt);
 	checkHit(bodies);
+	checkBounce(bodies);
 	t += dt;
 	requestAnimationFrame(run);
 }
@@ -63,12 +64,20 @@ function checkHit (bodies) {
 	}
 }
 
+function checkBounce (bodies) {
+	for (var i = 0; i<bodies.length; ++i) {
+		var n = bodies[i].checkHitWall(width, height); 
+		if (n != undefined) 
+			bodies[i].bounce(n);
+	}
+}
+
 function F(bodies, G) {
 	var result = new Array(bodies.length);
 	for (var i = bodies.length-1; i>=0; --i) {
 		for (var j = bodies.length-1; j>=0; --j) 
 			if (i != j) {
-			result[i] = bodies[i].F(bodies[j], G);
+				result[i] = bodies[i].F(bodies[j], G);
 		}
 	}
 	return result;
@@ -106,13 +115,10 @@ function Body (id, pos, v, m) {
 	this.draw = function (context) {
 		context.fillStyle="black";
 
-		// context.save();
-        // context.translate(this.pos.x, this.pos.y);
         context.beginPath();
         context.arc(this.pos.x, this.pos.y, this.radius, 0, 2*Math.PI);
-        // context.closePath();
         context.fill();
-        // context.restore();
+        context.restore();
 	}
 
 	this.F = function (that, G) {
@@ -138,6 +144,23 @@ function Body (id, pos, v, m) {
 		this.m += that.m;
 		this.radius = Math.pow(this.m, 1.0/3.0);
 		this.v = this.v.multiply(this.m).add(that.v.multiply(that.m)).multiply(1.0/(this.m + that.m));
+	}
+
+	this.checkHitWall = function (w, h) {
+		if (this.pos.x-this.radius<=0)
+			return new Vector(1, 0);
+		else if (this.pos.x+this.radius>=w)
+			return new Vector(-1, 0);
+		else if (this.pos.y-this.radius<=0)
+			return new Vector(0, 1);
+		else if (this.pos.y+this.radius>=h)
+			return new Vector(0, -1);
+		else
+			return undefined;
+	}
+
+	this.bounce = function (n) {;
+		this.v = this.v.add(n.multiply(-2*this.v.scalar(n)));
 	}	
 }
 
@@ -157,7 +180,11 @@ function Vector(x, y) {
 		return new Vector(this.x*a, this.y*a);
 	}
 
+	this.scalar = function (that) {
+		return this.x*that.x + this.y*that.y;
+	}
+
 	this.norm = function (){
-		return Math.sqrt(this.x*this.x + this.y*this.y);
+		return Math.sqrt(this.scalar(this));
 	}
 }
