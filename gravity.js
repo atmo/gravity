@@ -3,12 +3,11 @@ var size = 700;
 var height = size, width = size;
 var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 
-var bodies;
+var cluster;
 var mass = 5;
 var G = 100;
-var bodiesCount = 20;
+var bodiesCount = 50;
 var t = 0, dt = 0.1;
-var c = 0;
 
 function init() {
 	canvas = document.getElementById('canvas');
@@ -16,92 +15,108 @@ function init() {
 	canvas.height = height;
 
 	context = canvas.getContext('2d');
-	createBodies(bodiesCount);
+	cluster = new Cluster(bodiesCount, width, height, G);
 	run();
-}
-
-function createBodies(bodiesCount) {
-	bodies = new Array(bodiesCount);
-
-	var R = size/8, alpha;
-	for (var i = bodiesCount-1; i>=0; --i) {
-		bodies[i] = new Body(i, randomCenter(center, R),
-			new Vector(0, 0), mass);
-	}
-
-	function randomCenter (center, s) {
-		return center.add(new Vector(Math.floor(2*s*(Math.random()-0.5)), Math.floor(2*s*(Math.random()-0.5))));
-	}
 }
 
 function run() {
 	context.fillStyle="white";
 	context.fillRect(0,0,width,height);
-	draw(bodies, context);
-	bodies = nextPosition(bodies, dt);
-	checkHit(bodies);
-	checkBounce(bodies);
+	cluster.draw(context);
+	cluster.nextPosition(dt);
+	cluster.checkHit();
+	cluster.checkBounce(width, height);
 	t += dt;
 	requestAnimationFrame(run);
 }
 
-function nextPosition (bodies, dt) {
-	var k1 = multiply(F(bodies, G), dt);
-	var k2 = multiply(F(add(bodies, multiply(k1, 0.5)), G), dt);
-	var k3 = multiply(F(add(bodies, multiply(k2, 0.5)), G), dt);
-	var k4 = multiply(F(add(bodies, k3), G), dt);
-	return add(bodies, multiply(add(k1, add(multiply(k2, 2.0), add(multiply(k3, 2.0), k4))), 1.0/6.0));
-}
+function Cluster(bodiesCount, width, height, G) {
+	this.bodies = createBodies(bodiesCount);
+	this.width = width;
+	this.height = height;
+	this.G = G;
 
-function checkHit (bodies) {
-	for (var i = 0; i<bodies.length; ++i) {
-		for (var j = i+1; j<bodies.length; ++j) 
-			if (bodies[i].checkHit(bodies[j])) {
-				bodies[i].merge(bodies[j]);
-				bodies.splice(j, 1);
-				--j;
+	function createBodies(bodiesCount) {
+		var b = new Array(bodiesCount);
+
+		var R = size/8, alpha;
+		for (var i = bodiesCount-1; i>=0; --i) {
+			b[i] = new Body(i, randomCenter(center, R),
+				new Vector(0, 0), mass);
+		}
+
+		return b;
+
+		function randomCenter (center, s) {
+			return center.add(new Vector(Math.floor(2*s*(Math.random()-0.5)), Math.floor(2*s*(Math.random()-0.5))));
 		}
 	}
-}
 
-function checkBounce (bodies) {
-	for (var i = 0; i<bodies.length; ++i) {
-		var n = bodies[i].checkHitWall(width, height); 
-		if (n != undefined) 
-			bodies[i].bounce(n);
+	this.F = function(b) {
+		var result = new Array(b.length);
+		for (var i = b.length-1; i>=0; --i) {
+			for (var j = b.length-1; j>=0; --j) 
+				if (i != j) {
+					result[i] = b[i].F(b[j], this.G);
+			}
+		}
+		return result;
 	}
-}
 
-function F(bodies, G) {
-	var result = new Array(bodies.length);
-	for (var i = bodies.length-1; i>=0; --i) {
-		for (var j = bodies.length-1; j>=0; --j) 
-			if (i != j) {
-				result[i] = bodies[i].F(bodies[j], G);
+	this.add = function(b, that) {
+		var result = new Array(b.length);
+		for (var i = b.length-1; i>=0; --i) {
+			result[i] = b[i].add(that[i].pos, that[i].v);
+		}
+		return result;
+	}
+
+	this.multiply = function (b, a) {
+		var result = new Array(b.length);
+		for (var i = b.length-1; i>=0; --i) {
+			result[i] = new Body(i, b[i].pos.multiply(a), b[i].v.multiply(a), b[i].m);
+		}
+		return result;
+	}
+	 
+	this.draw = function(context) {
+		for (var i = this.bodies.length-1; i>=0; --i) {
+			this.bodies[i].draw(context);
 		}
 	}
-	return result;
-}
 
-function add(bodies, that) {
-	var result = new Array(bodies.length);
-	for (var i = bodies.length-1; i>=0; --i) {
-		result[i] = bodies[i].add(that[i].pos, that[i].v);
+	this.checkBounce = function (width, height) {
+		for (var i = 0; i<this.bodies.length; ++i) {
+			var n = this.bodies[i].checkHitWall(width, height); 
+			if (n != undefined) 
+				this.bodies[i].bounce(n);
+		}
 	}
-	return result;
-}
 
-function multiply(bodies, a) {
-	var result = new Array(bodies.length);
-	for (var i = bodies.length-1; i>=0; --i) {
-		result[i] = new Body(i, bodies[i].pos.multiply(a), bodies[i].v.multiply(a), bodies[i].m);
+	this.checkHit = function () {
+		for (var i = 0; i<this.bodies.length; ++i) {
+			for (var j = i+1; j<this.bodies.length; ++j) {
+				if (this.bodies[i].checkHit(this.bodies[j])) {
+					this.bodies[i].merge(this.bodies[j]);
+					this.bodies.splice(j, 1);
+					--j;
+				}
+			}
+		}
 	}
-	return result;
-}
- 
-function draw (bodies, context) {
-	for (var i = bodies.length-1; i>=0; --i) {
-		bodies[i].draw(context);
+	this.nextPosition = function (dt) {
+		var k1 = this.multiply(this.F(this.bodies, this.G), dt);
+		var k2 = this.multiply(this.F(this.add(this.bodies, this.multiply(k1, 0.5)), this.G), dt);
+		var k3 = this.multiply(this.F(this.add(this.bodies, this.multiply(k2, 0.5)), this.G), dt);
+		var k4 = this.multiply(this.F(this.add(this.bodies, k3), this.G), dt);
+		this.bodies = this.add(this.bodies, 
+			this.multiply(this.add(k1, this.add(this.multiply(k2, 2.0), this.add(this.multiply(k3, 2.0), k4))), 1.0/6.0));
+	}
+
+	this.draw = function (context) {
+		for (var i = this.bodies.length-1; i>=0; --i) {
+			this.bodies[i].draw(context);
+		}
 	}
 }
 
