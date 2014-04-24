@@ -23,20 +23,20 @@ function run() {
 	context.fillStyle="white";
 	context.fillRect(0,0,width,height);
 	cluster.draw(context);
-	cluster.nextPosition(dt);
+	cluster = cluster.nextPosition(dt);
 	cluster.checkHit();
 	cluster.checkBounce(width, height);
 	t += dt;
 	requestAnimationFrame(run);
 }
 
-function Cluster(bodiesCount, width, height, G) {
-	this.bodies = createBodies(bodiesCount);
+function Cluster(bodies, width, height, G) {
+	this.bodies = typeof bodies == "number" ? createBodies(bodies) : bodies;
 	this.width = width;
 	this.height = height;
 	this.G = G;
 
-	function createBodies(bodiesCount) {
+	function createBodies (bodiesCount) {
 		var b = new Array(bodiesCount);
 
 		var R = size/8, alpha;
@@ -52,31 +52,31 @@ function Cluster(bodiesCount, width, height, G) {
 		}
 	}
 
-	this.F = function(b) {
-		var result = new Array(b.length);
-		for (var i = b.length-1; i>=0; --i) {
-			for (var j = b.length-1; j>=0; --j) 
+	this.F = function() {
+		var result = new Array(this.bodies.length);
+		for (var i = this.bodies.length-1; i>=0; --i) {
+			for (var j = this.bodies.length-1; j>=0; --j) 
 				if (i != j) {
-					result[i] = b[i].F(b[j], this.G);
+					result[i] = this.bodies[i].F(this.bodies[j], this.G);
 			}
 		}
-		return result;
+		return new Cluster(result, this.width, this.height, this.G);
 	}
 
-	this.add = function(b, that) {
-		var result = new Array(b.length);
-		for (var i = b.length-1; i>=0; --i) {
-			result[i] = b[i].add(that[i].pos, that[i].v);
+	this.add = function(that) {
+		var result = new Array(this.bodies.length);
+		for (var i = this.bodies.length-1; i>=0; --i) {
+			result[i] = this.bodies[i].add(that.bodies[i].pos, that.bodies[i].v);
 		}
-		return result;
+		return new Cluster(result, this.width, this.height, this.G);
 	}
 
-	this.multiply = function (b, a) {
-		var result = new Array(b.length);
-		for (var i = b.length-1; i>=0; --i) {
-			result[i] = new Body(i, b[i].pos.multiply(a), b[i].v.multiply(a), b[i].m);
+	this.multiply = function (a) {
+		var result = new Array(this.bodies.length);
+		for (var i = this.bodies.length-1; i>=0; --i) {
+			result[i] = new Body(i, this.bodies[i].pos.multiply(a), this.bodies[i].v.multiply(a), this.bodies[i].m);
 		}
-		return result;
+		return new Cluster(result, this.width, this.height, this.G);
 	}
 	 
 	this.draw = function(context) {
@@ -105,12 +105,11 @@ function Cluster(bodiesCount, width, height, G) {
 		}
 	}
 	this.nextPosition = function (dt) {
-		var k1 = this.multiply(this.F(this.bodies, this.G), dt);
-		var k2 = this.multiply(this.F(this.add(this.bodies, this.multiply(k1, 0.5)), this.G), dt);
-		var k3 = this.multiply(this.F(this.add(this.bodies, this.multiply(k2, 0.5)), this.G), dt);
-		var k4 = this.multiply(this.F(this.add(this.bodies, k3), this.G), dt);
-		this.bodies = this.add(this.bodies, 
-			this.multiply(this.add(k1, this.add(this.multiply(k2, 2.0), this.add(this.multiply(k3, 2.0), k4))), 1.0/6.0));
+		var k1 = this.F().multiply(dt);
+		var k2 = this.add(k1.multiply(0.5)).F().multiply(dt);
+		var k3 = this.add(k2.multiply(0.5)).F().multiply(dt);
+		var k4 = this.add(k3).F().multiply(dt); 
+		return this.add(k1.add(k2.multiply(2.0)).add(k3.multiply(2.0)).add(k4).multiply(1.0/6.0));
 	}
 
 	this.draw = function (context) {
