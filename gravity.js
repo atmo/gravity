@@ -1,5 +1,5 @@
 var canvas, context;
-var size = 700;
+var size = 500;
 var height = size, width = size;
 var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 
@@ -8,6 +8,8 @@ var mass = 5;
 var G = 100;
 var bodiesCount = 50;
 var t = 0, dt = 0.1;
+
+var running = true, showTraces = true;
 
 function init() {
     canvas = document.getElementById('canvas');
@@ -20,14 +22,36 @@ function init() {
 }
 
 function run() {
-    context.fillStyle="white";
-    context.fillRect(0,0,width,height);
+    if (!showTraces) {
+        context.fillStyle="white";
+        context.fillRect(0,0,width,height);
+    }
     cluster.draw(context);
+    if (showTraces)
+        cluster.trace(context);
     cluster = cluster.nextPosition(dt);
     cluster.checkHit();
     cluster.checkBounce();
     t += dt;
-    requestAnimationFrame(run);
+    if (running)
+        requestAnimationFrame(run);
+}
+
+function toggleRunning() {
+    running = !running;
+    var button = document.getElementById('runButton');
+    if (running) {
+        button.value = "Pause";
+        run();
+    }
+    else {
+        button.value = "Run";
+    }
+}
+
+function setShowTraces() {
+    var checkbox = document.getElementById('checkbox');
+    showTraces = checkbox.checked;
 }
 
 function Cluster(bodies, width, height, G) {
@@ -113,7 +137,13 @@ function Cluster(bodies, width, height, G) {
 
     this.draw = function (context) {
         for (var i = this.bodies.length-1; i>=0; --i) {
-            this.bodies[i].draw(context);
+            this.bodies[i].draw(context, "black");
+        }
+    }
+
+    this.trace = function (context) {
+        for (var i = this.bodies.length-1; i>=0; --i) {
+            this.bodies[i].trace(context);
         }
     }
 }
@@ -124,14 +154,6 @@ function Body (id, pos, v, m) {
     this.v = v;
     this.m = m;
     this.radius = Math.pow(m, 1/3.0);
-
-    this.draw = function (context) {
-        context.fillStyle="black";
-
-        context.beginPath();
-        context.arc(this.pos.x, this.pos.y, this.radius, 0, 2*Math.PI);
-        context.fill();
-    }
 
     this.F = function (that, G) {
         var result = new Body(id, this.v, new Vector(0, 0), m);
@@ -178,6 +200,25 @@ function Body (id, pos, v, m) {
     this.bounce = function (w, h) {
         var n = this.getNormal(w, h);
         this.v = this.v.add(n.multiply(-2*this.v.scalar(n)));
+    }
+
+    this.draw = function (context, color) {
+        context.fillStyle=color;
+
+        context.beginPath();
+        context.arc(this.pos.x, this.pos.y, this.radius, 0, 2*Math.PI);
+        context.fill();
+    }
+
+    this.trace = function (context) {
+        this.draw(context, "white");
+        context.fillStyle="red";
+
+        context.beginPath();
+        var ev = this.v.multiply(-this.radius/this.v.norm());
+        context.arc(this.pos.x+ev.x, this.pos.y+ev.y, 0.5, 0, 2*Math.PI);
+        context.fill();
+        this.draw(context, "black");
     }
 }
 

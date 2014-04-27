@@ -2,3 +2,14 @@
     border: 1px solid black;
     display: inline-block;
 }
+
+.inner {
+  position: relative;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.settings {
+  display: inline-block;
+  text-align: center;
+}
