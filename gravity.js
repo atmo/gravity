@@ -31,7 +31,7 @@ function run() {
         cluster.trace(context);
     cluster = cluster.nextPosition(dt);
     cluster.checkHit();
-    cluster.checkBounce();
+    cluster.checkWallHit(bounce);
     t += dt;
     if (running)
         requestAnimationFrame(run);
@@ -50,8 +50,13 @@ function toggleRunning() {
 }
 
 function setShowTraces() {
-    var checkbox = document.getElementById('checkbox');
+    var checkbox = document.getElementById('traces');
     showTraces = checkbox.checked;
+}
+
+function setBounce() {
+    var checkbox = document.getElementById('bounce');
+    bounce = checkbox.checked;
 }
 
 function Cluster(bodies, width, height, G) {
@@ -109,10 +114,15 @@ function Cluster(bodies, width, height, G) {
         }
     }
 
-    this.checkBounce = function () {
+    this.checkWallHit = function (bounce) {
         for (var i = 0; i<this.bodies.length; ++i) {
-            if (this.bodies[i].checkHitWall(this.width, this.height))
-                this.bodies[i].bounce(this.width, this.height);
+            if (this.bodies[i].checkWallHit(this.width, this.height))
+            {
+                if (bounce)
+                    this.bodies[i].bounce(this.width, this.height);
+                else
+                    this.bodies[i].goThrough(this.width, this.height);
+            }
         }
     }
 
@@ -180,7 +190,7 @@ function Body (id, pos, v, m) {
         this.v = this.v.multiply(this.m).add(that.v.multiply(that.m)).multiply(1.0/(this.m + that.m));
     }
 
-    this.checkHitWall = function (w, h) {
+    this.checkWallHit = function (w, h) {
         return this.getNormal(w, h) != undefined;
     }
 
@@ -200,6 +210,11 @@ function Body (id, pos, v, m) {
     this.bounce = function (w, h) {
         var n = this.getNormal(w, h);
         this.v = this.v.add(n.multiply(-2*this.v.scalar(n)));
+    }
+
+    this.goThrough = function (w, h) {
+        var n = this.getNormal(w, h);
+        this.pos = this.pos.add(n.multiply(n.x != 0 ? w : h));
     }
 
     this.draw = function (context, color) {
