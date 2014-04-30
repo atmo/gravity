@@ -9,7 +9,7 @@ var G = 100;
 var bodiesCount = 50;
 var t = 0, dt = 0.1;
 
-var running = true, showTraces = true;
+var running = true, showTraces = false;
 
 function init() {
     canvas = document.getElementById('canvas');
@@ -47,6 +47,19 @@ function toggleRunning() {
     else {
         button.value = "Run";
     }
+}
+
+
+function onBodiesCountChanged(v) {
+    bodiesCount = parseInt(v, 10);
+}
+
+function restart() {
+    running = true;
+    cluster = new Cluster(bodiesCount, width, height, G);
+    context.fillStyle="white";
+    context.fillRect(0,0,width,height);
+    run();
 }
 
 function setShowTraces() {
