@@ -161,6 +161,11 @@ function Cluster(bodies, width, height, G) {
     this.draw = function (context) {
         for (var i = this.bodies.length-1; i>=0; --i) {
             this.bodies[i].draw(context, "black");
+
+            var n = this.bodies[i].checkWallHit(this.width, this.height);
+            if (n) {
+                new Body(i, bodies[i].pos.add(n.multiply(n.x != 0 ? this.width : this.height)), bodies[i].v, bodies[i].m).draw(context, "black");
+            }
         }
     }
 
@@ -204,10 +209,6 @@ function Body (id, pos, v, m) {
     }
 
     this.checkWallHit = function (w, h) {
-        return this.getNormal(w, h) != undefined;
-    }
-
-    this.getNormal = function (w, h) {
         if (this.pos.x-this.radius<=0)
             return new Vector(1, 0);
         else if (this.pos.x+this.radius>=w)
@@ -221,12 +222,12 @@ function Body (id, pos, v, m) {
     }
 
     this.bounce = function (w, h) {
-        var n = this.getNormal(w, h);
+        var n = this.checkWallHit(w, h);
         this.v = this.v.add(n.multiply(-2*this.v.scalar(n)));
     }
 
     this.goThrough = function (w, h) {
-        var n = this.getNormal(w, h);
+        var n = this.checkWallHit(w, h);
         this.pos = this.pos.add(n.multiply(n.x != 0 ? w : h));
     }
 
