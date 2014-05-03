@@ -3,7 +3,7 @@ var size = 500;
 var height = size, width = size;
 var center = new Vector(Math.floor(width/2), Math.floor(height/2));
 
-var cluster;
+var cluster, prevcluster;
 var mass = 5;
 var G = 100;
 var bodiesCount = 50;
@@ -26,9 +26,10 @@ function run() {
         context.fillStyle="white";
         context.fillRect(0,0,width,height);
     }
-    cluster.draw(context);
     if (showTraces)
-        cluster.trace(context);
+        prevcluster.trace(context);
+    cluster.draw(context);
+    prevcluster = cluster;
     cluster = cluster.nextPosition(dt);
     cluster.checkHit();
     cluster.checkWallHit(bounce);
@@ -150,6 +151,7 @@ function Cluster(bodies, width, height, G) {
             }
         }
     }
+
     this.nextPosition = function (dt) {
         var k1 = this.F().multiply(dt);
         var k2 = this.add(k1.multiply(0.5)).F().multiply(dt);
@@ -160,11 +162,11 @@ function Cluster(bodies, width, height, G) {
 
     this.draw = function (context) {
         for (var i = this.bodies.length-1; i>=0; --i) {
-            this.bodies[i].draw(context, "black");
+            this.bodies[i].draw(context);
 
             var n = this.bodies[i].checkWallHit(this.width, this.height);
             if (n) {
-                new Body(i, bodies[i].pos.add(n.multiply(n.x != 0 ? this.width : this.height)), bodies[i].v, bodies[i].m).draw(context, "black");
+                new Body(i, bodies[i].pos.add(n.multiply(n.x != 0 ? this.width : this.height)), bodies[i].v, bodies[i].m).draw(context);
             }
         }
     }
@@ -172,6 +174,10 @@ function Cluster(bodies, width, height, G) {
     this.trace = function (context) {
         for (var i = this.bodies.length-1; i>=0; --i) {
             this.bodies[i].trace(context);
+            var n = this.bodies[i].checkWallHit(this.width, this.height);
+            if (n) {
+                new Body(i, bodies[i].pos.add(n.multiply(n.x != 0 ? this.width : this.height)), bodies[i].v, bodies[i].m).clear(context);
+            }
         }
     }
 }
@@ -231,23 +237,30 @@ function Body (id, pos, v, m) {
         this.pos = this.pos.add(n.multiply(n.x != 0 ? w : h));
     }
 
-    this.draw = function (context, color) {
-        context.fillStyle=color;
+    this.draw = function (context) {
+        context.fillStyle="black";
 
         context.beginPath();
         context.arc(this.pos.x, this.pos.y, this.radius, 0, 2*Math.PI);
         context.fill();
     }
 
+    this.clear = function (context) {
+        context.fillStyle="white";
+
+        context.beginPath();
+        context.arc(this.pos.x, this.pos.y, this.radius+1, 0, 2*Math.PI);
+        context.fill();
+    }
+
     this.trace = function (context) {
-        this.draw(context, "white");
+        this.clear(context);
         context.fillStyle="red";
 
         context.beginPath();
         var ev = this.v.multiply(-this.radius/this.v.norm());
         context.arc(this.pos.x+ev.x, this.pos.y+ev.y, 0.5, 0, 2*Math.PI);
         context.fill();
-        this.draw(context, "black");
     }
 }
 
