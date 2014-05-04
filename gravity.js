@@ -26,7 +26,9 @@ function run() {
         context.fillStyle="white";
         context.fillRect(0,0,width,height);
     }
-    if (showTraces)
+    if (prevcluster)
+        prevcluster.clear(context);
+    if (showTraces && prevcluster)
         prevcluster.trace(context);
     cluster.draw(context);
     prevcluster = cluster;
@@ -99,7 +101,7 @@ function Cluster(bodies, width, height, G) {
         var result = new Array(this.bodies.length);
         for (var i = this.bodies.length-1; i>=0; --i) {
             for (var j = this.bodies.length-1; j>=0; --j)
-                if (i != j) {
+            {
                     result[i] = this.bodies[i].F(this.bodies[j], this.G);
             }
         }
@@ -171,6 +173,17 @@ function Cluster(bodies, width, height, G) {
         }
     }
 
+    this.clear = function (context) {
+        for (var i = this.bodies.length-1; i>=0; --i) {
+            this.bodies[i].clear(context);
+
+            var n = this.bodies[i].checkWallHit(this.width, this.height);
+            if (n) {
+                new Body(i, bodies[i].pos.add(n.multiply(n.x != 0 ? this.width : this.height)), bodies[i].v, bodies[i].m).clear(context);
+            }
+        }
+    }
+
     this.trace = function (context) {
         for (var i = this.bodies.length-1; i>=0; --i) {
             this.bodies[i].trace(context);
@@ -191,8 +204,10 @@ function Body (id, pos, v, m) {
 
     this.F = function (that, G) {
         var result = new Body(id, this.v, new Vector(0, 0), m);
-        var diff = this.pos.subtract(that.pos);
-        result.v = result.v.add(diff.multiply(-G*that.m/cube(diff.norm())));
+        var diff = this.pos.subtract(that.pos), diffnorm = diff.norm();
+        if (diffnorm > 1e-6) {
+            result.v = result.v.add(diff.multiply(-G*that.m/cube(diff.norm())));
+        }
         return result;
 
         function cube(a) {
@@ -254,7 +269,6 @@ function Body (id, pos, v, m) {
     }
 
     this.trace = function (context) {
-        this.clear(context);
         context.fillStyle="red";
 
         context.beginPath();
