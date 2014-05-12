@@ -24,11 +24,13 @@
       <label> Show traces:
         <input id="traces" type="checkbox" onclick="setShowTraces()" />
       </label>
+      |
       <label> Bounce:
         <input id="bounce" type="checkbox" checked onclick="setBounce()" />
       </label>
+      |
       <label> Bodies count:
-        <input class="bc" type="number" onchange="onBodiesCountChanged(this.value)" />
+        <input id="bodies_count" type="number" onchange="onBodiesCountChanged(this.value)" />
       </label>
       <input type="button" id="runButton" value="Pause" onclick="toggleRunning()" style="width:60px;" />
       <input type="button" id="restartButton" value="Restart" onclick="restart()" style="width:60px;" />

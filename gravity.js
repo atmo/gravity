@@ -12,12 +12,15 @@ var t = 0,
     dt = 0.1;
 
 var running = true,
-    showTraces = false;
+    showTraces = false,
+    bounce = true;
 
 function init() {
     canvas = document.getElementById('canvas');
     canvas.width = width;
     canvas.height = height;
+
+    document.getElementById('bodies_count').value = bodiesCount;
 
     context = canvas.getContext('2d');
     cluster = new Cluster(bodiesCount, width, height, G);
