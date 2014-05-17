@@ -13,7 +13,8 @@ var t = 0,
 
 var running = true,
     showTraces = false,
-    bounce = true;
+    bounce = true,
+    merge = true;
 
 function init() {
     canvas = document.getElementById('canvas');
@@ -40,7 +41,8 @@ function run() {
     cluster.draw(context);
     prevcluster = cluster;
     cluster = cluster.nextPosition(dt);
-    cluster.checkHit();
+    if (merge)
+        cluster.checkHit();
     t += dt;
     if (running)
         requestAnimationFrame(run);
@@ -73,6 +75,11 @@ function restart() {
 function setShowTraces() {
     var checkbox = document.getElementById('traces');
     showTraces = checkbox.checked;
+}
+
+function setMerge() {
+    var checkbox = document.getElementById('merge');
+    merge = checkbox.checked;
 }
 
 function setBounce() {
